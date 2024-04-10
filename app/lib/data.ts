@@ -9,6 +9,8 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
+import { unstable_noStore as noStore } from 'next/cache';
+import { Nosifer } from 'next/font/google';
 
 const pool = new Pool({
   user: 'postgres',
@@ -21,6 +23,7 @@ const pool = new Pool({
 export async function fetchRevenue() {
 
   // Add noStore() here to prevent the response from being cached.
+  noStore();
   // This is equivalent to in fetch(..., {cache: 'no-store'}).
 
   try {
@@ -44,6 +47,7 @@ export async function fetchRevenue() {
 }
 
 export async function fetchLatestInvoices() {
+  noStore();
   try {
     const client = await pool.connect();
     const data = await client.query<LatestInvoiceRaw>(`
@@ -66,16 +70,18 @@ export async function fetchLatestInvoices() {
 }
 
 export async function fetchCardData() {
+  noStore();
   try {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
     // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
-    const invoiceStatusPromise = sql`SELECT
+    const client = await pool.connect();
+    const invoiceCountPromise = client.query(`SELECT COUNT(*) FROM invoices`);
+    const customerCountPromise = client.query(`SELECT COUNT(*) FROM customers`);
+    const invoiceStatusPromise = client.query(`SELECT
          SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
          SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
+         FROM invoices`);
 
     const data = await Promise.all([
       invoiceCountPromise,
@@ -87,6 +93,8 @@ export async function fetchCardData() {
     const numberOfCustomers = Number(data[1].rows[0].count ?? '0');
     const totalPaidInvoices = formatCurrency(data[2].rows[0].paid ?? '0');
     const totalPendingInvoices = formatCurrency(data[2].rows[0].pending ?? '0');
+
+    await client.release();
 
     return {
       numberOfCustomers,
@@ -105,10 +113,12 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
+  noStore();
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
-    const invoices = await sql<InvoicesTable>`
+    const client = await pool.connect();
+    const invoices = await client.query<InvoicesTable>(`
       SELECT
         invoices.id,
         invoices.amount,
@@ -127,7 +137,9 @@ export async function fetchFilteredInvoices(
         invoices.status ILIKE ${`%${query}%`}
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-    `;
+    `);
+
+    await client.release();
 
     return invoices.rows;
   } catch (error) {
@@ -137,8 +149,10 @@ export async function fetchFilteredInvoices(
 }
 
 export async function fetchInvoicesPages(query: string) {
+  noStore();
   try {
-    const count = await sql`SELECT COUNT(*)
+    const client = await pool.connect();
+    const count = await client.query(`SELECT COUNT(*)
     FROM invoices
     JOIN customers ON invoices.customer_id = customers.id
     WHERE
@@ -147,9 +161,12 @@ export async function fetchInvoicesPages(query: string) {
       invoices.amount::text ILIKE ${`%${query}%`} OR
       invoices.date::text ILIKE ${`%${query}%`} OR
       invoices.status ILIKE ${`%${query}%`}
-  `;
+  `);
 
     const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    
+    await client.release();
+
     return totalPages;
   } catch (error) {
     console.error('Database Error:', error);
@@ -158,8 +175,10 @@ export async function fetchInvoicesPages(query: string) {
 }
 
 export async function fetchInvoiceById(id: string) {
+  noStore();
   try {
-    const data = await sql<InvoiceForm>`
+    const client = await pool.connect();
+    const data = await client.query<InvoiceForm>(`
       SELECT
         invoices.id,
         invoices.customer_id,
@@ -167,7 +186,7 @@ export async function fetchInvoiceById(id: string) {
         invoices.status
       FROM invoices
       WHERE invoices.id = ${id};
-    `;
+    `);
 
     const invoice = data.rows.map((invoice) => ({
       ...invoice,
@@ -183,16 +202,20 @@ export async function fetchInvoiceById(id: string) {
 }
 
 export async function fetchCustomers() {
+  noStore();
   try {
-    const data = await sql<CustomerField>`
+    const client = await pool.connect();
+    const data = await client.query<CustomerField>(`
       SELECT
         id,
         name
       FROM customers
       ORDER BY name ASC
-    `;
+    `);
 
     const customers = data.rows;
+    await client.release();
+
     return customers;
   } catch (err) {
     console.error('Database Error:', err);
@@ -201,8 +224,10 @@ export async function fetchCustomers() {
 }
 
 export async function fetchFilteredCustomers(query: string) {
+  noStore();
   try {
-    const data = await sql<CustomersTableType>`
+    const client = await pool.connect();
+    const data = await client.query<CustomersTableType>(`
 		SELECT
 		  customers.id,
 		  customers.name,
@@ -218,7 +243,7 @@ export async function fetchFilteredCustomers(query: string) {
         customers.email ILIKE ${`%${query}%`}
 		GROUP BY customers.id, customers.name, customers.email, customers.image_url
 		ORDER BY customers.name ASC
-	  `;
+	  `);
 
     const customers = data.rows.map((customer) => ({
       ...customer,
@@ -226,6 +251,7 @@ export async function fetchFilteredCustomers(query: string) {
       total_paid: formatCurrency(customer.total_paid),
     }));
 
+    await client.release();
     return customers;
   } catch (err) {
     console.error('Database Error:', err);
@@ -234,8 +260,13 @@ export async function fetchFilteredCustomers(query: string) {
 }
 
 export async function getUser(email: string) {
+  noStore();
   try {
-    const user = await sql`SELECT * FROM users WHERE email=${email}`;
+    const client = await pool.connect();
+    const user = await client.query(`SELECT * FROM users WHERE email=${email}`);
+    
+    await client.release();
+    
     return user.rows[0] as User;
   } catch (error) {
     console.error('Failed to fetch user:', error);
