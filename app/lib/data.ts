@@ -114,7 +114,6 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
-  noStore();
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
@@ -122,26 +121,26 @@ export async function fetchFilteredInvoices(
     const invoices = await client.query<InvoicesTable>(`
       SELECT
         invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
+        invoices.customer_id,
         customers.name,
         customers.email,
-        customers.image_url
+        customers.image_url,
+        invoices.date,
+        invoices.amount,
+        invoices.status
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
       WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
+        customers.name ILIKE $1 OR
+        customers.email ILIKE $1 OR
+        invoices.amount::text ILIKE $1 OR
+        invoices.date::text ILIKE $1 OR
+        invoices.status ILIKE $1
       ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-    `);
+      LIMIT $2 OFFSET $3
+    `, [`%${query}%`, ITEMS_PER_PAGE, offset]);
 
-    await client.release();
-
+    client.release();
     return invoices.rows;
   } catch (error) {
     console.error('Database Error:', error);
@@ -151,60 +150,42 @@ export async function fetchFilteredInvoices(
 
 export async function fetchFilteredTickets(
   query: string,
-  currentPage: number,
+  currentPage: number
 ) {
-  noStore(); // No estoy seguro de qué hace esta función, por favor asegúrate de su funcionalidad
-
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
     const client = await pool.connect();
-    const queryResult = await client.query<TicketsTable>(
-      `SELECT
-         tickets.id,
-         tickets.site_id,
-         sites.lot,
-         sites.site_code,
-         sites.site_name,
-         sites.site_type,
-         sites.department,
-         sites.municipality,
-         sites.village,
-         sites.bandwidth,
-         sites.service_value,
-         sites.contact_name,
-         sites.contact_phone,
-         sites.contract_number,
-         tickets.ticket_number,
-         tickets.issue,
-         tickets.images,
-         tickets.notification_email,
-         tickets.creation_date,
-         tickets.status,
-         tickets.last_state_change_date
-       FROM tickets
-       JOIN sites ON tickets.site_id = sites.id
-       WHERE
-         sites.site_code ILIKE '%${query}%'
-         OR sites.site_name ILIKE '%${query}%'
-         OR sites.site_type ILIKE '%${query}%'
-         OR sites.department ILIKE '%${query}%'
-         OR sites.municipality ILIKE '%${query}%'
-         OR sites.village ILIKE '%${query}%'
-         OR tickets.issue ILIKE '%${query}%'
-         OR tickets.notification_email ILIKE '%${query}%'
-         OR tickets.creation_date ILIKE '%${query}%'
-         OR tickets.status ILIKE '%${query}%'
-       ORDER BY tickets.creation_date DESC
-       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}`
-    );
+    const tickets = await client.query<TicketsTable>(`
+      SELECT
+        t.id,
+        t.ticket_number,
+        s.site_code,
+        s.site_name,
+        s.contact_name,
+        s.contact_phone,
+        t.issue,
+        t.status,
+        t.creation_date,
+        t.last_state_change_date
+      FROM tickets t
+      JOIN sites s ON t.site_id = s.id
+      WHERE
+        t.ticket_number ILIKE $1 OR
+        s.site_code ILIKE $1 OR
+        s.site_name ILIKE $1 OR
+        s.contact_name ILIKE $1 OR
+        s.contact_phone ILIKE $1
+      ORDER BY t.creation_date DESC
+      LIMIT $2 OFFSET $3
+    `, [`%${query}%`, ITEMS_PER_PAGE, offset]);
 
-    await client.release();
+    client.release();
 
-    return queryResult.rows;
+    return tickets.rows;
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch tickets.');
+    console.error('Error en la base de datos:', error);
+    throw new Error('Error al obtener los tickets.');
   }
 }
 

@@ -102,27 +102,15 @@ export type InvoicesTable = {
 
 export type TicketsTable = {
   id: string;
-  site_id: string;
-  lot: string;
+  ticket_number: string;
   site_code: string;
   site_name: string;
-  site_type: string;
-  department: string;
-  municipality: string;
-  village: string;
-  bandwidth: string;
-  service_value: number;
   contact_name: string;
   contact_phone: string;
-  contract_number: string;
-  ticket_number: string;
-  issue: string;
-  images: string[]; // Array of image URLs
-  notification_email: string;
   creation_date: string;
   status: 'open' | 'registered' | 'updated' | 'closed';
   last_state_change_date: string;
-};
+}
 
 export type CustomersTableType = {
   id: string;
