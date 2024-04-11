@@ -43,45 +43,54 @@ export default async function TicketsTable({
           <table className="hidden min-w-full text-gray-900 md:table">
             <thead className="rounded-lg text-left text-sm font-normal">
               <tr>
+                <th scope="col" className="px-3 py-5 font-medium">
+                  Número de Ticket
+                </th>
+                <th scope="col" className="px-3 py-5 font-medium">
+                  Código de Sitio
+                </th>
                 <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                  Ticket Number
+                  Nombre de Sitio
+                </th>
+                <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
+                  Nombre de Contacto
                 </th>
                 <th scope="col" className="px-3 py-5 font-medium">
-                  Site Code
+                  Teléfono de Contacto
                 </th>
                 <th scope="col" className="px-3 py-5 font-medium">
-                  Site Name
+                  Fecha de Creación
                 </th>
                 <th scope="col" className="px-3 py-5 font-medium">
-                  Contact Name
+                  Estado
                 </th>
                 <th scope="col" className="px-3 py-5 font-medium">
-                  Contact Phone
+                  Fecha de Último Cambio de Estado
                 </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Creation Date
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Status
-                </th>
-                <th scope="col" className="px-3 py-5 font-medium">
-                  Last State Change Date
+                <th scope="col" className="relative py-3 pl-6 pr-3">
+                  <span className="sr-only">Editar</span>
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white">
-              {tickets?.map((ticket) => (
-                <tr key={ticket.id} className="w-full border-b border-gray-100 last-of-type:border-none">
-                  <td className="px-4 py-5 font-medium sm:pl-6">{ticket.ticket_number}</td>
-                  <td className="px-3 py-5 font-medium">{ticket.site_code}</td>
-                  <td className="px-3 py-5 font-medium">{ticket.site_name}</td>
-                  <td className="px-3 py-5 font-medium">{ticket.contact_name}</td>
-                  <td className="px-3 py-5 font-medium">{ticket.contact_phone}</td>
-                  <td className="px-3 py-5 font-medium">{formatDateToLocal(ticket.creation_date)}</td>
-                  <td className="px-3 py-5 font-medium">
+              {tickets?.map((ticket, index) => (
+                <tr key={ticket.id} className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg">
+                  <td className="px-4 py-2 sm:pl-6 text-sm text-gray-800">{ticket.ticket_number}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{ticket.site_code}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{ticket.site_name}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{ticket.contact_name}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{ticket.contact_phone}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{formatDateToLocal(ticket.creation_date)}</td>
+                  <td className="px-3 py-2 text-sm">
                     <TicketStatus status={ticket.status} />
                   </td>
-                  <td className="px-3 py-5 font-medium">{formatDateToLocal(ticket.last_state_change_date)}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{formatDateToLocal(ticket.last_state_change_date)}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex justify-end gap-2">
+                      <UpdateTicket id={ticket.id} />
+                      <DeleteTicket id={ticket.id} />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
