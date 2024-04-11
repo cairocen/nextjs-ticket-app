@@ -4,6 +4,8 @@ const {
   customers,
   revenue,
   users,
+  sites,
+  tickets,
 } = require('../app/lib/placeholder-data.js');
 const bcrypt = require('bcrypt');
 
@@ -52,7 +54,7 @@ async function seedUsers(client) {
   }
 }
 
-// Función para seedInvoices
+// Function for seedInvoices
 async function seedInvoices(client) {
   try {
     const createTable = await client.query(`
@@ -87,7 +89,7 @@ async function seedInvoices(client) {
   }
 }
 
-// Función para seedCustomers
+// Function for seedCustomers
 async function seedCustomers(client) {
   try {
     const createTable = await client.query(`
@@ -117,6 +119,88 @@ async function seedCustomers(client) {
     };
   } catch (error) {
     console.error('Error seeding customers:', error);
+    throw error;
+  }
+}
+
+// Function for seeding tickets
+async function seedTickets(client) {
+  try {
+    const createTable = await client.query(`
+      CREATE TABLE IF NOT EXISTS tickets (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        site_id UUID NOT NULL,
+        ticket_number VARCHAR(255) NOT NULL,
+        issue TEXT NOT NULL,
+        images TEXT[] NOT NULL,
+        notification_email VARCHAR(255) NOT NULL,
+        creation_date DATE NOT NULL,
+        status VARCHAR(255) NOT NULL,
+        last_state_change_date DATE NOT NULL
+      );
+    `);
+
+    console.log(`Created "tickets" table`);
+
+    const insertedTickets = await Promise.all(
+      tickets.map((ticket) => client.query(`
+        INSERT INTO tickets (site_id, ticket_number, issue, images, notification_email, creation_date, status, last_state_change_date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO NOTHING;
+      `, [ticket.site_id, ticket.ticket_number, ticket.issue, ticket.images, ticket.notification_email, ticket.creation_date, ticket.status, ticket.last_state_change_date]))
+    );
+
+    console.log(`Seeded ${insertedTickets.length} tickets`);
+
+    return {
+      createTable,
+      tickets: insertedTickets,
+    };
+  } catch (error) {
+    console.error('Error seeding tickets:', error);
+    throw error;
+  }
+}
+
+// Function for seeding sites
+async function seedSites(client) {
+  try {
+    const createTable = await client.query(`
+      CREATE TABLE IF NOT EXISTS sites (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        lot VARCHAR(255) NOT NULL,
+        site_code VARCHAR(255) NOT NULL,
+        site_name VARCHAR(255) NOT NULL,
+        site_type VARCHAR(255) NOT NULL,
+        department VARCHAR(255) NOT NULL,
+        municipality VARCHAR(255) NOT NULL,
+        village VARCHAR(255),
+        bandwidth VARCHAR(255) NOT NULL,
+        service_value NUMERIC(10, 2) NOT NULL,  -- Accepts numeric values with 10 digits and 2 decimals
+        contact_name VARCHAR(255) NOT NULL,
+        contact_phone VARCHAR(255) NOT NULL,
+        contract_number VARCHAR(255)
+      );
+    `);
+
+    console.log(`Created "sites" table`);
+
+    const insertedSites = await Promise.all(
+      sites.map((site) => client.query(`
+        INSERT INTO sites (id, lot, site_code, site_name, site_type, department, municipality, village, bandwidth, service_value, contact_name, contact_phone, contract_number)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ON CONFLICT (id) DO NOTHING;
+      `, [site.id, site.lot, site.site_code, site.site_name, site.site_type, site.department, site.municipality, site.village, site.bandwidth, parseFloat(site.service_value), site.contact_name, site.contact_phone, site.contract_number]))
+    );
+
+    console.log(`Seeded ${insertedSites.length} sites`);
+
+    return {
+      createTable,
+      sites: insertedSites,
+    };
+  } catch (error) {
+    console.error('Error seeding sites:', error);
     throw error;
   }
 }
@@ -159,6 +243,8 @@ async function main() {
   await seedCustomers(client);
   await seedInvoices(client);
   await seedRevenue(client);
+  await seedSites(client);
+  await seedTickets(client);
 
   await client.release();
 }

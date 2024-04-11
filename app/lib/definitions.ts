@@ -26,6 +26,34 @@ export type Invoice = {
   status: 'pending' | 'paid';
 };
 
+export type Ticket = {
+  id: string;
+  site_id: string;
+  ticket_number: string;
+  issue: string;
+  images: string[]; // Array of image URLs
+  notification_email: string;
+  creation_date: string;
+  status: 'open' | 'registered' | 'updated' | 'closed';
+  last_state_change_date: string;
+};
+
+export type Site = {
+  id: string;
+  lot: string;
+  site_code: string;
+  site_name: string;
+  site_type: string;
+  department: string;
+  municipality: string;
+  village: string;
+  bandwidth: string;
+  service_value: number;
+  contact_name: string;
+  contact_phone: string;
+  contract_number: string;
+};
+
 export type Revenue = {
   month: string;
   revenue: number;
@@ -37,6 +65,23 @@ export type LatestInvoice = {
   image_url: string;
   email: string;
   amount: string;
+};
+
+export type LatestTicket = {
+  id: string;
+  lot: string;
+  site_code: string;
+  site_name: string;
+  site_type: string;
+  department: string;
+  municipality: string;
+  village: string;
+  bandwidth: string;
+  service_value: number;
+  contact_name: string;
+  contact_phone: string;
+  contract_number: string;
+  creation_date: string;
 };
 
 // The database returns a number for amount, but we later format it to a string with the formatCurrency function
@@ -53,6 +98,30 @@ export type InvoicesTable = {
   date: string;
   amount: number;
   status: 'pending' | 'paid';
+};
+
+export type TicketsTable = {
+  id: string;
+  site_id: string;
+  lot: string;
+  site_code: string;
+  site_name: string;
+  site_type: string;
+  department: string;
+  municipality: string;
+  village: string;
+  bandwidth: string;
+  service_value: number;
+  contact_name: string;
+  contact_phone: string;
+  contract_number: string;
+  ticket_number: string;
+  issue: string;
+  images: string[]; // Array of image URLs
+  notification_email: string;
+  creation_date: string;
+  status: 'open' | 'registered' | 'updated' | 'closed';
+  last_state_change_date: string;
 };
 
 export type CustomersTableType = {
@@ -80,9 +149,27 @@ export type CustomerField = {
   name: string;
 };
 
+export type SiteField = {
+  id: string;
+  site_code: string;
+  site_name: string;
+  contact_name: string;
+  contact_phone: string;
+};
+
 export type InvoiceForm = {
   id: string;
   customer_id: string;
   amount: number;
   status: 'pending' | 'paid';
+};
+
+export type TicketForm = {
+  id: string;
+  site_id: string;
+  ticket_number: string;
+  issue: string;
+  images: string[]; // Array of image URLs
+  notification_email: string;
+  status: 'open' | 'registered' | 'updated' | 'closed';
 };

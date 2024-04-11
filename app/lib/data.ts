@@ -4,6 +4,7 @@ import {
   CustomersTableType,
   InvoiceForm,
   InvoicesTable,
+  TicketsTable,
   LatestInvoiceRaw,
   User,
   Revenue,
@@ -148,6 +149,65 @@ export async function fetchFilteredInvoices(
   }
 }
 
+export async function fetchFilteredTickets(
+  query: string,
+  currentPage: number,
+) {
+  noStore(); // No estoy seguro de qué hace esta función, por favor asegúrate de su funcionalidad
+
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const client = await pool.connect();
+    const queryResult = await client.query<TicketsTable>(
+      `SELECT
+         tickets.id,
+         tickets.site_id,
+         sites.lot,
+         sites.site_code,
+         sites.site_name,
+         sites.site_type,
+         sites.department,
+         sites.municipality,
+         sites.village,
+         sites.bandwidth,
+         sites.service_value,
+         sites.contact_name,
+         sites.contact_phone,
+         sites.contract_number,
+         tickets.ticket_number,
+         tickets.issue,
+         tickets.images,
+         tickets.notification_email,
+         tickets.creation_date,
+         tickets.status,
+         tickets.last_state_change_date
+       FROM tickets
+       JOIN sites ON tickets.site_id = sites.id
+       WHERE
+         sites.site_code ILIKE '%${query}%'
+         OR sites.site_name ILIKE '%${query}%'
+         OR sites.site_type ILIKE '%${query}%'
+         OR sites.department ILIKE '%${query}%'
+         OR sites.municipality ILIKE '%${query}%'
+         OR sites.village ILIKE '%${query}%'
+         OR tickets.issue ILIKE '%${query}%'
+         OR tickets.notification_email ILIKE '%${query}%'
+         OR tickets.creation_date ILIKE '%${query}%'
+         OR tickets.status ILIKE '%${query}%'
+       ORDER BY tickets.creation_date DESC
+       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}`
+    );
+
+    await client.release();
+
+    return queryResult.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch tickets.');
+  }
+}
+
 export async function fetchInvoicesPages(query: string) {
   noStore();
   try {
@@ -164,7 +224,7 @@ export async function fetchInvoicesPages(query: string) {
   `);
 
     const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
-    
+
     await client.release();
 
     return totalPages;
@@ -264,9 +324,9 @@ export async function getUser(email: string) {
   try {
     const client = await pool.connect();
     const user = await client.query(`SELECT * FROM users WHERE email=${email}`);
-    
+
     await client.release();
-    
+
     return user.rows[0] as User;
   } catch (error) {
     console.error('Failed to fetch user:', error);
