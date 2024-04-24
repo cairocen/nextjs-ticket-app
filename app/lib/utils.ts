@@ -1,3 +1,4 @@
+import { getLastTicketNumber } from './data';
 import { Revenue } from './definitions';
 
 export const formatCurrency = (amount: number) => {
@@ -7,7 +8,7 @@ export const formatCurrency = (amount: number) => {
   });
 };
 
-export const formatDateToLocal = (
+export const formatDateTimeToLocal = (
   dateStr: string,
   locale: string = 'en-US',
 ) => {
@@ -16,10 +17,15 @@ export const formatDateToLocal = (
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: true,
   };
   const formatter = new Intl.DateTimeFormat(locale, options);
   return formatter.format(date);
 };
+
 
 export const generateYAxis = (revenue: Revenue[]) => {
   // Calculate what labels we need to display on the y-axis

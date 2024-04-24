@@ -8,6 +8,7 @@ import {
   LatestInvoiceRaw,
   User,
   Revenue,
+  SiteField,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -197,12 +198,12 @@ export async function fetchInvoicesPages(query: string) {
     FROM invoices
     JOIN customers ON invoices.customer_id = customers.id
     WHERE
-      customers.name ILIKE ${`%${query}%`} OR
-      customers.email ILIKE ${`%${query}%`} OR
-      invoices.amount::text ILIKE ${`%${query}%`} OR
-      invoices.date::text ILIKE ${`%${query}%`} OR
-      invoices.status ILIKE ${`%${query}%`}
-  `);
+      customers.name ILIKE $1 OR
+      customers.email ILIKE $1 OR
+      invoices.amount::text ILIKE $1 OR
+      invoices.date::text ILIKE $1 OR
+      invoices.status ILIKE $1
+  `, [`%${query}%`]);
 
     const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
 
@@ -212,6 +213,54 @@ export async function fetchInvoicesPages(query: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch total number of invoices.');
+  }
+}
+
+export async function fetchTicketsPages(query: string) {
+  noStore();
+  try {
+    const client = await pool.connect();
+
+    const count = await client.query(`SELECT COUNT(*)
+      FROM tickets
+      JOIN sites ON tickets.site_id = sites.id
+      WHERE
+        tickets.ticket_number ILIKE $1 OR
+        sites.site_code ILIKE $1 OR
+        sites.site_name ILIKE $1 OR
+        sites.contact_name ILIKE $1 OR
+        sites.contact_phone ILIKE $1 OR
+        tickets.creation_date::text ILIKE $1 OR
+        tickets.status ILIKE $1 OR
+        tickets.last_state_change_date::text ILIKE $1
+    `, [`%${query}%`]);
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+
+    await client.release();
+
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of tickets.');
+  }
+}
+
+export async function getLastTicketNumber() {
+  try {
+    const client = await pool.connect();
+
+    const result = await client.query(`SELECT MAX(CAST(SUBSTRING(tickets.ticket_number FROM 4) AS INTEGER)) AS max_ticket_number
+      FROM tickets`);
+
+    const lastTicketNum = result.rows[0].max_ticket_number || 0;
+
+    await client.release();
+
+    return lastTicketNum;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch the last ticket number.');
   }
 }
 
@@ -252,6 +301,31 @@ export async function fetchCustomers() {
         name
       FROM customers
       ORDER BY name ASC
+    `);
+
+    const customers = data.rows;
+    await client.release();
+
+    return customers;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all customers.');
+  }
+}
+
+export async function fetchSites() {
+  noStore();
+  try {
+    const client = await pool.connect();
+    const data = await client.query<SiteField>(`
+      SELECT
+        id,
+        site_code,
+        site_name,
+        contact_name,
+        contact_phone
+      FROM sites
+      ORDER BY site_code ASC
     `);
 
     const customers = data.rows;

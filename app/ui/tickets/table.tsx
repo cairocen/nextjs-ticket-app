@@ -1,6 +1,6 @@
 import { UpdateTicket, DeleteTicket } from '@/app/ui/tickets/buttons';
 import TicketStatus from '@/app/ui/tickets/status';
-import { formatDateToLocal } from '@/app/lib/utils';
+import { formatDateTimeToLocal } from '@/app/lib/utils';
 import { fetchFilteredTickets } from '@/app/lib/data';
 
 export default async function TicketsTable({
@@ -80,11 +80,11 @@ export default async function TicketsTable({
                   <td className="px-3 py-2 text-sm text-gray-800">{ticket.site_name}</td>
                   <td className="px-3 py-2 text-sm text-gray-800">{ticket.contact_name}</td>
                   <td className="px-3 py-2 text-sm text-gray-800">{ticket.contact_phone}</td>
-                  <td className="px-3 py-2 text-sm text-gray-800">{formatDateToLocal(ticket.creation_date)}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{formatDateTimeToLocal(ticket.creation_date)}</td>
                   <td className="px-3 py-2 text-sm">
                     <TicketStatus status={ticket.status} />
                   </td>
-                  <td className="px-3 py-2 text-sm text-gray-800">{formatDateToLocal(ticket.last_state_change_date)}</td>
+                  <td className="px-3 py-2 text-sm text-gray-800">{formatDateTimeToLocal(ticket.last_state_change_date)}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-2">
                       <UpdateTicket id={ticket.id} />
